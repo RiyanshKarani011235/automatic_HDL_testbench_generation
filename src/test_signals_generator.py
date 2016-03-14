@@ -54,18 +54,15 @@ def generate_test_signals(verilog_file_path) :
 		[test_signal_declaration_list,test_signal_assignment_list] = generate_test_signals_from_line(line_string)
 
 		for element in test_signal_declaration_list :
-			test_signal_declaration_list_.append(test_signal_declaration_list)
+			test_signal_declaration_list_.append(element)
 
 		test_signal_assignment_list_.append((test_signal_assignment_list,line_number))
 
-	print(test_signal_declaration_list_)
-	print(test_signal_assignment_list_)
-	
-	print(verilog_file_line_list)
-
+	# removing the , after the last test signal declaration
+	test_signal_declaration_list_[-1] = test_signal_declaration_list_[-1][:-2]+ '\n'
 	generated_file = ''
 
-	# addign test assignment statements
+	# adding test assignment statements
 	with open(verilog_file_path) as verilog_file : 
 		i = 0
 		flag = 0
@@ -87,11 +84,10 @@ def generate_test_signals(verilog_file_path) :
 			if(');' in line and flag == 1 and multiline_comment_flag == 0) :
 				flag = 0
 				generated_file  += tabs_to_add + '// test signals\n'
-				for signal_declarations in test_signal_declaration_list_ : 
-					for signal_declaration in signal_declarations :
-						generated_file += tabs_to_add + signal_declaration
+				for signal_declaration in test_signal_declaration_list_ : 
+					generated_file += tabs_to_add + signal_declaration
 			generated_file += line
-
+			
 			for signal_assignment in test_signal_assignment_list_:
 				if(signal_assignment[1] == i) : 
 					for element in signal_assignment[0] :
