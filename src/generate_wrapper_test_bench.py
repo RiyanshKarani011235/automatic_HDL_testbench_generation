@@ -20,6 +20,7 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 				verilog_file_line_list.append(line)
 
 		flag = 0
+		parameter_flag = 0
 		single_line_comment_flag = 0
 		multiline_comment_flag = 0
 		signal_declarations_list = []
@@ -34,21 +35,23 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 				multiline_comment_flag = 0
 			
 			# single line comments handling
-			if('//' in line) : 
+			if(self.remove_useless_characters(line,['\t']).startswith('//')) : 
 				single_line_comment_flag = 1
 			else : 
 				single_line_comment_flag = 0
 
 			if(multiline_comment_flag == 0) :
 				if(single_line_comment_flag == 0) : 
-					if 'module' in line and flag == 0 : 
+					if 'module' in line and 'endmodule' not in line and flag == 0 : 
 						flag = 1
+						if '#' in line : 
+							parameter_flag = 1
 						# getting the module name
 						if 'endmodule' not in line :
 							line_list = line.split(' ')
 							line_list_temp = []
 							for element in line_list : 
-								if element != '' :
+								if element != '' and '#' not in element:
 									line_list_temp.append(element)
 							line_list = line_list_temp
 							if line_list[-1] == '(' : 
@@ -58,11 +61,13 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 								module_name = self.remove_useless_characters(module_name,[' '])
 							else :
 								module_name = line_list[-1]
-							
+					
+					elif ')' in line and parameter_flag == 1 : 
+						parameter_flag = 0
 					elif ');' in line and flag == 1 : 
 						flag = 0
 					else : 
-						if(flag == 1) : 
+						if(flag == 1 and parameter_flag == 0) : 
 							signal_declarations_list.append(line)
 				else : 
 					if(flag == 1) : 
@@ -88,9 +93,19 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 					signal_declarations_list_temp[-1].append(element)
 
 		signal_declarations_list = signal_declarations_list_temp
+		signal_declarations_list_temp = []
+
+		for signal_declaration in signal_declarations_list : 
+			if signal_declaration != [] : 
+				signal_declarations_list_temp.append(signal_declaration)
+
+		signal_declarations_list = signal_declarations_list_temp
 
 		self.module_name = module_name
 		self.signal_declarations_list = signal_declarations_list
+
+		for element in self.signal_declarations_list : 
+			print(element)
 
 	def generate_test_bench(self) : 
 		return_string = ''
@@ -99,6 +114,7 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 
 		for signal_declaration in self.signal_declarations_list : 
 			return_string += '\t'
+			
 			if '//' in signal_declaration[0] : 
 				# comment
 				for element in signal_declaration : 
