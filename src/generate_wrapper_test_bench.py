@@ -132,7 +132,7 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 		return_string += '\t' + self.module_name + ' ' + self.module_name + '_instance1 ' '(\n'
 		for signal_declaration in self.signal_declarations_list : 
 			return_string += '\t\t'
-			if '//' in signal_declaration[0] : 
+			if not self.remove_useless_characters(signal_declaration[0],['\t']).startswith('//') : 
 				for element in signal_declaration : 
 					return_string += element + ' '
 				return_string += '\n'
@@ -142,6 +142,19 @@ class GenerateWrapperTestBenchCommand(sublime_plugin.TextCommand) :
 		# remove the final ,
 		return_string = return_string[:-2] + '\n'
 		return_string += '\t);\n\n'
+
+		#add dumpfile and dumpvars compiler directives
+		return_string += '\tinitial begin\n\t\t$dumpfile("simulation.vcd");\n\t\t$dumpvars(0,\n'
+		for signal_declaration in self.signal_declarations_list : 
+			if not self.remove_useless_characters(signal_declaration[0],['\t']).startswith('//') : 
+				return_string += '\t\t\t' + signal_declaration[-1] + ',\n'
+			else : 
+				return_string += '\t\t\t'
+				for element in signal_declaration : 
+					return_string += element + ' '
+				return_string += '\n'
+		#remove the final ,
+		return_string = return_string[:-2] + '\n\t\t);\n\tend\n\n'
 
 		return_string += '\tinitial begin\n'
 		return_string += '\t\t// initializing registers\n'
